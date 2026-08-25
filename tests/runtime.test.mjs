@@ -17,6 +17,7 @@ import { handleManagerMessage } from "../src/manager-bridge.mjs";
 import { loadManagerConfig } from "../src/manager-config.mjs";
 import { confirmationFromText, createManagerPlanStore, validateManagerPlan } from "../src/manager-runtime.mjs";
 import { assessDeepAgentsNeed } from "../src/complexity-gate.mjs";
+import { createArtifactStore } from "../src/artifact-store.mjs";
 
 const fakeTeamHarnessServer = path.resolve("tests/fixtures/fake-teamharness.mjs");
 
@@ -130,6 +131,22 @@ test("runtime config reads AgentTeams identity and env-referenced credentials", 
   assert.throws(() => resolveSharedPath(config, "../escape", "workspace"), /safe relative path/);
 });
 
+test("artifact store maps shared receipts to the AgentTeams MinIO plane", () => {
+  const value = fixture();
+  const calls = [];
+  const store = createArtifactStore({ sharedRoot: value.shared }, {
+    AGENTTEAMS_FS_ENDPOINT: "http://minio.test",
+    AGENTTEAMS_FS_ACCESS_KEY: "access",
+    AGENTTEAMS_FS_SECRET_KEY: "secret",
+    AGENTTEAMS_FS_BUCKET: "agentteams-storage",
+  }, { run: (args) => { calls.push(args); return { status: 0, stderr: "" }; } });
+  const relative = "tasks/cloud_case-02/workspace/receipt.json";
+  fs.writeFileSync(path.join(value.shared, relative), "{}\n");
+  assert.equal(store.push(relative), `agentteams/agentteams-storage/juchang-dsh/shared/${relative}`);
+  assert.deepEqual(calls.map((args) => args[0]), ["alias", "cp"]);
+  assert.throws(() => store.push("../escape.json"), /safe relative path/);
+});
+
 test("Matrix accepts only an exact Worker mention plus a valid task envelope", () => {
   const value = fixture();
   const config = loadRuntimeConfig(value.runtimePath, value.env);
@@ -163,8 +180,13 @@ test("external Worker acknowledges, runs DSH, submits, then mentions Leader", as
   const envelope = { schema: "juchang-agentteams-dsh-task@1", projectId: "cloud_case", taskId: "cloud_case-02", role: "evidence_guard", inputPath: "tasks/cloud_case-02/workspace/input.json", workspacePath: "tasks/cloud_case-02/workspace", publicWriteAllowed: false };
   const sent = [];
   const calls = [];
+  const artifactCalls = [];
   const receipt = { projectId: "cloud_case", taskId: "cloud_case-02", role: "evidence_guard", conclusion: "HUMAN_REVIEW", facts: [], conflicts: [], unknownFields: ["replacement_date"], external_write_count: 0, safetyCounters: { productionWrites: 0, publicPublishes: 0, realRefunds: 0, externalMessages: 0 } };
   const result = await executeAssignment(config, { roomId: "!room:matrix.test", envelope }, {
+    artifacts: {
+      ensureLocal: (relative) => artifactCalls.push(["pull", relative]),
+      push: (relative) => artifactCalls.push(["push", relative]),
+    },
     teamHarness: {
       callTaskflow: async (_config, action, payload) => {
         calls.push({ action, payload });
@@ -177,6 +199,10 @@ test("external Worker acknowledges, runs DSH, submits, then mentions Leader", as
   });
   assert.equal(JSON.parse(fs.readFileSync(result.receiptPath, "utf8")).taskId, envelope.taskId);
   assert.deepEqual(calls.map((item) => item.action), ["ack_task", "run_dsh", "submit_task"]);
+  assert.deepEqual(artifactCalls, [
+    ["pull", "tasks/cloud_case-02/workspace/input.json"],
+    ["push", "tasks/cloud_case-02/workspace/receipt.json"],
+  ]);
   assert.equal(calls[2].payload.status, "SUCCESS_WITH_NOTES");
   assert.deepEqual(calls[2].payload.deliverables, ["shared/tasks/cloud_case-02/workspace/receipt.json"]);
   assert.match(sent[0].body, /@juchang-lead:matrix\.test TASK_COMPLETED/);

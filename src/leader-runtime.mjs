@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { createArtifactStore } from "./artifact-store.mjs";
 import { runDsh, validateReceipt } from "./dsh-runner.mjs";
 import { taskRole, validateProjectEnvelope } from "./project-contract.mjs";
 import { resolveSharedPath } from "./runtime-config.mjs";
@@ -46,29 +47,34 @@ function appendAudit(config, projectId, event) {
   return next;
 }
 
-function workerInput(config, request, task) {
+function workerInput(config, request, task, artifacts) {
   const inputPath = `tasks/${task.taskId}/workspace/input.json`;
   const filename = resolveSharedPath(config, inputPath, "downstream inputPath");
   if (task.dependsOn.length === 0) {
+    artifacts.ensureLocal(request.inputPath);
     const source = resolveSharedPath(config, request.inputPath, "project inputPath");
     writeAtomic(filename, JSON.parse(fs.readFileSync(source, "utf8")));
+    artifacts.push(inputPath);
     return inputPath;
   }
   const upstreamReceipts = task.dependsOn.map((dependency) => {
-    const receiptPath = resolveSharedPath(config, `tasks/${dependency}/workspace/receipt.json`, "dependency receipt");
+    const relative = `tasks/${dependency}/workspace/receipt.json`;
+    artifacts.ensureLocal(relative);
+    const receiptPath = resolveSharedPath(config, relative, "dependency receipt");
     return JSON.parse(fs.readFileSync(receiptPath, "utf8"));
   });
   writeAtomic(filename, { projectId: request.projectId, taskId: task.taskId, upstreamReceipts });
+  artifacts.push(inputPath);
   return inputPath;
 }
 
-function taskSpec(config, request, task) {
+function taskSpec(config, request, task, artifacts) {
   const envelope = {
     schema: "juchang-agentteams-dsh-task@1",
     projectId: request.projectId,
     taskId: task.taskId,
     role: task.role,
-    inputPath: workerInput(config, request, task),
+    inputPath: workerInput(config, request, task, artifacts),
     workspacePath: `tasks/${task.taskId}/workspace`,
     publicWriteAllowed: false,
   };
@@ -84,7 +90,7 @@ function taskSpec(config, request, task) {
   ].join("\n");
 }
 
-async function delegateReady(config, request, projectResponse, teamHarness) {
+async function delegateReady(config, request, projectResponse, teamHarness, artifacts) {
   const ready = projectResponse.readyNodes || [];
   const delegated = [];
   for (const node of ready) {
@@ -96,7 +102,7 @@ async function delegateReady(config, request, projectResponse, teamHarness) {
       assignedTo: task.assignedTo,
       roomId: request.roomId,
       title: task.title,
-      spec: taskSpec(config, request, task),
+      spec: taskSpec(config, request, task, artifacts),
     }), "delegate_task");
     if (response.task?.status !== "assigned" || response.synced !== true || response.notification?.sent !== true) {
       throw new Error(`delegate_task did not prove assigned, synced, and notified: ${task.taskId}`);
@@ -107,9 +113,12 @@ async function delegateReady(config, request, projectResponse, teamHarness) {
   return delegated;
 }
 
-export async function startProject(config, envelope, teamHarness) {
+export async function startProject(config, envelope, teamHarness, options = {}) {
   const request = validateProjectEnvelope(config, envelope);
+  const artifacts = options.artifacts || createArtifactStore(config, options.env);
+  artifacts.ensureLocal(request.inputPath);
   resolveSharedPath(config, request.inputPath, "project inputPath");
+  artifacts.push(request.inputPath);
   const workspace = projectWorkspace(config, request.projectId);
   fs.mkdirSync(workspace, { recursive: true });
   writeAtomic(path.join(workspace, "request.json"), request);
@@ -128,12 +137,13 @@ export async function startProject(config, envelope, teamHarness) {
   }), "plan_dag");
   if (planned.project?.tasks?.length !== 4) throw new Error("plan_dag did not persist four tasks");
   appendAudit(config, request.projectId, { operation: "plan_dag", success: true });
-  const delegated = await delegateReady(config, request, planned, teamHarness);
+  const delegated = await delegateReady(config, request, planned, teamHarness, artifacts);
   return { request, project: planned.project, delegated };
 }
 
-export async function acceptTask(config, projectId, taskId, teamHarness) {
+export async function acceptTask(config, projectId, taskId, teamHarness, options = {}) {
   const request = readProjectRequest(config, projectId);
+  const artifacts = options.artifacts || createArtifactStore(config, options.env);
   const role = taskRole(taskId, projectId);
   const checked = requireOk(await teamHarness.callTaskflow(config, "check_task", { projectId, taskId }), "check_task");
   if (checked.effective !== true || checked.task?.status !== "submitted" || checked.validationErrors?.length !== 0) {
@@ -143,6 +153,7 @@ export async function acceptTask(config, projectId, taskId, teamHarness) {
   if (JSON.stringify(checked.result?.deliverables) !== JSON.stringify([expectedDeliverable])) {
     throw new Error(`check_task deliverables must equal ${expectedDeliverable}`);
   }
+  artifacts.ensureLocal(expectedDeliverable.slice("shared/".length));
   const receipt = JSON.parse(fs.readFileSync(resolveSharedPath(config, expectedDeliverable.slice("shared/".length), "receipt"), "utf8"));
   const receiptErrors = validateReceipt(receipt, { projectId, taskId, role });
   if (receiptErrors.length) throw new Error(`receipt validation failed: ${receiptErrors.join("; ")}`);
@@ -162,7 +173,7 @@ export async function acceptTask(config, projectId, taskId, teamHarness) {
   const observed = requireOk(await teamHarness.callProjectflow(config, "ready_nodes", { projectId }), "ready_nodes");
   if (projectTask(observed.project, taskId)?.status !== "completed") throw new Error(`terminal readback failed: ${taskId}`);
   appendAudit(config, projectId, { operation: "task_terminal_observed", taskId, success: true, status: "completed" });
-  const delegated = await delegateReady(config, request, observed, teamHarness);
+  const delegated = await delegateReady(config, request, observed, teamHarness, artifacts);
   return { project: observed.project, delegated, completed: observed.project.tasks.every((task) => task.status === "completed") };
 }
 
@@ -180,15 +191,17 @@ function verifyCompletionAudit(config, projectId, request) {
 
 export async function completeProject(config, projectId, teamHarness, options = {}) {
   const request = readProjectRequest(config, projectId);
+  const artifacts = options.artifacts || createArtifactStore(config, options.env);
   verifyCompletionAudit(config, projectId, request);
   const before = requireOk(await teamHarness.callProjectflow(config, "ready_nodes", { projectId }), "pre-complete ready_nodes");
   if (before.project?.status !== "active" || before.project?.tasks?.length !== 4 || before.project.tasks.some((task) => task.status !== "completed")) {
     throw new Error("all four Project tasks must be completed before complete_project");
   }
-  const workerReceipts = request.tasks.map((task) => JSON.parse(fs.readFileSync(
-    resolveSharedPath(config, `tasks/${task.taskId}/workspace/receipt.json`, "worker receipt"),
-    "utf8",
-  )));
+  const workerReceipts = request.tasks.map((task) => {
+    const relative = `tasks/${task.taskId}/workspace/receipt.json`;
+    artifacts.ensureLocal(relative);
+    return JSON.parse(fs.readFileSync(resolveSharedPath(config, relative, "worker receipt"), "utf8"));
+  });
   const leaderTask = { projectId, taskId: `${projectId}-leader`, role: "team_leader" };
   const leaderReceipt = await (options.runDsh || runDsh)(
     config,
@@ -198,6 +211,7 @@ export async function completeProject(config, projectId, teamHarness, options = 
     options.env,
   );
   writeAtomic(path.join(projectWorkspace(config, projectId), "leader-receipt.json"), leaderReceipt);
+  artifacts.push(`projects/${projectId}/workspace/leader-receipt.json`);
   const completed = requireOk(await teamHarness.callProjectflow(config, "complete_project", { projectId, publishArtifacts: false }), "complete_project");
   if (completed.project?.status !== "completed") throw new Error("complete_project did not return completed");
   appendAudit(config, projectId, { operation: "complete_project", success: true, status: "completed" });
@@ -222,5 +236,7 @@ export async function completeProject(config, projectId, teamHarness, options = 
     completedAt: new Date().toISOString(),
   };
   writeAtomic(path.join(projectWorkspace(config, projectId), "result.json"), result);
+  artifacts.push(`projects/${projectId}/workspace/result.json`);
+  artifacts.push(`projects/${projectId}/workspace/audit.json`);
   return result;
 }

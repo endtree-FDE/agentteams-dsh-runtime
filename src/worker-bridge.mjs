@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 
+import { createArtifactStore } from "./artifact-store.mjs";
 import { assessDeepAgentsNeed } from "./complexity-gate.mjs";
 import { runDeepAgentsAcp } from "./deepagents-acp.mjs";
 import { runDsh, validateReceipt, validateTaskEnvelope } from "./dsh-runner.mjs";
@@ -22,6 +23,8 @@ export async function executeAssignment(config, assignment, options = {}) {
   if (acknowledged.ok !== true || acknowledged.task?.status !== "in_progress") {
     throw new Error(`TeamHarness ack_task failed: ${acknowledged.error || "task did not enter in_progress"}`);
   }
+  const artifacts = options.artifacts || createArtifactStore(config, options.env);
+  artifacts.ensureLocal(task.inputPath);
   const inputPath = resolveSharedPath(config, task.inputPath, "inputPath");
   const workspace = resolveSharedPath(config, task.workspacePath, "workspacePath");
   if (!fs.statSync(inputPath).isFile()) throw new Error("inputPath must be a file");
@@ -57,6 +60,7 @@ export async function executeAssignment(config, assignment, options = {}) {
   const receiptPath = path.join(workspace, "receipt.json");
   writeAtomic(receiptPath, receipt);
   const relativeReceipt = path.relative(config.sharedRoot, receiptPath).replaceAll("\\", "/");
+  artifacts.push(relativeReceipt);
   const deliverable = `shared/${relativeReceipt}`;
   const status = receipt.conclusion === "BLOCKED" ? "BLOCKED" : "SUCCESS_WITH_NOTES";
   const summary = `${task.role} produced a zero-write DSH receipt for Leader review (${receipt.conclusion}).`;
