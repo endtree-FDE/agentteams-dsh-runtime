@@ -22,6 +22,14 @@ JUCHANG_CONFIRM_DEPLOY=1 bash deploy/cloudstudio-deploy.sh
 
 The deploy script refuses to write unless `JUCHANG_CONFIRM_DEPLOY=1` is present.
 
+An existing all-in-one CloudStudio installation can keep its current network, ports, state volume, and manager filesystem while replacing only the embedded Controller image:
+
+```bash
+JUCHANG_CONFIRM_UPGRADE=1 bash deploy/cloudstudio-upgrade-embedded.sh
+```
+
+The previous Controller remains stopped as `agentteams-controller-v122-backup`. The script restores it automatically when the new `/healthz` does not become ready within two minutes.
+
 `MiniMax-M3` is the selected first model. It must exist as an authorized AgentTeams Gateway model route. Replace only the model ID if the deployed Gateway exposes a different configured route; do not change the DSH runtime or authority boundary.
 
 ## Non-claims
