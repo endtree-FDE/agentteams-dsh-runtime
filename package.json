@@ -1,0 +1,26 @@
+{
+  "name": "@juchang/agentteams-dsh-runtime",
+  "version": "0.3.0",
+  "description": "Unofficial AgentTeams Team Leader/Worker runtime built on DSH",
+  "type": "module",
+  "license": "Apache-2.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test": "node --test tests/*.test.mjs",
+    "worker": "node bin/worker.mjs",
+    "leader": "node bin/leader.mjs",
+    "manager": "node bin/manager.mjs",
+    "probe:teamharness": "node bin/probe-teamharness.mjs",
+    "probe:deepagents": "node bin/probe-deepagents-acp.mjs",
+    "patch:agentteams": "node scripts/patch-agentteams-v1.2.3.mjs",
+    "patch:agentteams-worker": "node scripts/patch-agentteams-v1.2.3-worker.mjs",
+    "build:editor-projection": "node scripts/build-editor-projection.mjs"
+  },
+  "dependencies": {
+    "@agentclientprotocol/sdk": "0.25.1",
+    "yaml": "2.9.0"
+  }
+}

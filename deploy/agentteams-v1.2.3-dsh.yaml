@@ -1,0 +1,90 @@
+apiVersion: agentteams.io/v1beta1
+kind: Worker
+metadata:
+  name: juchang-v14-lead
+spec:
+  model: MiniMax-M3
+  runtime: dsh
+  image: juchang/agentteams-dsh-runtime:0.3.0
+  env:
+    JUCHANG_DSH_ROLE: team_leader
+    JUCHANG_ROLE_BINDINGS_JSON: >-
+      {"material_intake":{"runtimeName":"juchang-v14-material-intake","matrixUserId":"@juchang-v14-material-intake:matrix-local.agentteams.io:18080"},"evidence_guard":{"runtimeName":"juchang-v14-evidence-guard","matrixUserId":"@juchang-v14-evidence-guard:matrix-local.agentteams.io:18080"},"entity_matcher":{"runtimeName":"juchang-v14-entity-matcher","matrixUserId":"@juchang-v14-entity-matcher:matrix-local.agentteams.io:18080"},"approval_guard":{"runtimeName":"juchang-v14-approval-guard","matrixUserId":"@juchang-v14-approval-guard:matrix-local.agentteams.io:18080"}}
+  state: Running
+  identity: 据场变更班次主理人；只编排、核验和汇总，不替人审批，不直接写外部系统。
+  soul: 先核清事实与影响，再组织执行；高风险或不可逆动作停在具名人类责任人面前。
+---
+apiVersion: agentteams.io/v1beta1
+kind: Worker
+metadata:
+  name: juchang-v14-material-intake
+spec:
+  model: MiniMax-M3
+  runtime: dsh
+  image: juchang/agentteams-dsh-runtime:0.3.0
+  env:
+    JUCHANG_DSH_ROLE: material_intake
+  state: Running
+  identity: 材料整理 Worker；只读材料并整理候选，不判断最终活动状态。
+  soul: 不把回顾当预告，不把文章发布日期当活动日期，不补写材料中没有的事实。
+---
+apiVersion: agentteams.io/v1beta1
+kind: Worker
+metadata:
+  name: juchang-v14-evidence-guard
+spec:
+  model: MiniMax-M3
+  runtime: dsh
+  image: juchang/agentteams-dsh-runtime:0.3.0
+  env:
+    JUCHANG_DSH_ROLE: evidence_guard
+  state: Running
+  identity: 证据核验 Worker；逐字段评估证据强度并暴露冲突，不用模型猜测消解。
+  soul: 没有活动特指证据就拒答；冲突和未知必须显式留下。
+---
+apiVersion: agentteams.io/v1beta1
+kind: Worker
+metadata:
+  name: juchang-v14-entity-matcher
+spec:
+  model: MiniMax-M3
+  runtime: dsh
+  image: juchang/agentteams-dsh-runtime:0.3.0
+  env:
+    JUCHANG_DSH_ROLE: entity_matcher
+  state: Running
+  identity: 实体关联 Worker；只关联当前证据支持的活动、场次、人物、机构、地点与系列。
+  soul: 多个候选不能唯一消解时交还人工，不为完成任务强行匹配。
+---
+apiVersion: agentteams.io/v1beta1
+kind: Worker
+metadata:
+  name: juchang-v14-approval-guard
+spec:
+  model: MiniMax-M3
+  runtime: dsh
+  image: juchang/agentteams-dsh-runtime:0.3.0
+  env:
+    JUCHANG_DSH_ROLE: approval_guard
+  state: Running
+  identity: 审批门禁 Worker；只能准备执行计划和风险说明，不能代替人批准。
+  soul: 已生成命令不等于现实已经一致；没有具名审批凭证就没有执行权。
+---
+apiVersion: agentteams.io/v1beta1
+kind: Team
+metadata:
+  name: juchang-change-control-v14
+spec:
+  description: 据场高风险文化活动变更治理班次；DSH 执行，AgentTeams 保持身份、DAG、Taskflow、Matrix 与人工门禁权威。
+  peerMentions: true
+  workerMembers:
+    - name: juchang-v14-lead
+      role: team_leader
+    - name: juchang-v14-material-intake
+      role: worker
+    - name: juchang-v14-evidence-guard
+      role: worker
+    - name: juchang-v14-entity-matcher
+      role: worker
+    - name: juchang-v14-approval-guard
+      role: worker

@@ -1,0 +1,25 @@
+{
+  "schema": "agentteams-dsh-runtime-local-verification@1",
+  "version": "0.3.0",
+  "verifiedAt": "2026-08-25T14:54:53.5657550+08:00",
+  "agentTeams": {
+    "version": "v1.2.3",
+    "commit": "223ddc2b8073e4c8b93bcbb15e1d717f196c04d9",
+    "patchedGoPackagesPassed": ["internal/backend", "internal/controller", "internal/service", "cmd/agt"]
+  },
+  "runtime": {
+    "dsh": "0.1.1-rc.2",
+    "deepAgents": "0.7.6",
+    "deepAgentsAcp": "0.0.8",
+    "acpSdk": "0.25.1"
+  },
+  "checks": {
+    "sourceRuntimeTests": "19/19 passed",
+    "extractedSubmissionTests": "19/19 passed",
+    "officialTeamHarnessProbe": "OFFICIAL_TEAMHARNESS_READY",
+    "deepAgentsCompileSelfCheck": true,
+    "deepAgentsAcpTransportProbe": "DEEPAGENTS_ACP_READY",
+    "patchIdempotent": true
+  },
+  "boundary": "Local verification does not prove Docker build, CloudStudio rollout, live model calls, live Matrix identities, a real four-Worker Project, or editor visual readback."
+}

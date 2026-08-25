@@ -1,0 +1,17 @@
+manager:
+  enabled: true
+  model: MiniMax-M3
+  runtime: dsh
+  image:
+    repository: juchang/agentteams-dsh-runtime
+    tag: 0.3.0
+
+credentials:
+  defaultModel: MiniMax-M3
+
+worker:
+  defaultRuntime: dsh
+
+controller:
+  env:
+    AGENTTEAMS_DEFAULT_WORKER_RUNTIME: dsh

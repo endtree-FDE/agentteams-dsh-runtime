@@ -1,0 +1,32 @@
+# CloudStudio deployment contract
+
+This slice runs the global AgentTeams Manager, the fixed Team Leader, and all four domain Workers on the same DSH runtime image. The Manager owns Controller-level Worker/Team administration; the Team Leader owns Project/DAG coordination through TeamHarness. They remain separate identities and authority planes.
+
+## Required build order
+
+1. Check out `agentscope-ai/AgentTeams` at tag `v1.2.3` / commit `223ddc2b8073e4c8b93bcbb15e1d717f196c04d9`.
+2. Run `npm run patch:agentteams-worker -- --source <checkout>` from this package.
+3. Build and test the patched AgentTeams Controller in CloudStudio. Go tests are a hard gate.
+4. Build this directory's Dockerfile as `juchang/agentteams-dsh-runtime:0.3.0`.
+5. Deploy AgentTeams with `cloudstudio-values.yaml`, ensuring the patched Controller image is selected.
+6. Apply `manager-dsh.yaml` only when Helm did not create the Manager, then apply `agentteams-v1.2.3-dsh.yaml`.
+7. Read back the Manager, all five Workers, the Team roster, every projected `runtime.yaml`, and all six runtime readiness markers.
+
+CloudStudio can run the checked-in scripts directly:
+
+```bash
+export AGENTTEAMS_SOURCE=/workspace/AgentTeams
+bash deploy/cloudstudio-build-and-verify.sh
+JUCHANG_CONFIRM_DEPLOY=1 bash deploy/cloudstudio-deploy.sh
+```
+
+The deploy script refuses to write unless `JUCHANG_CONFIRM_DEPLOY=1` is present.
+
+`MiniMax-M3` is the selected first model. It must exist as an authorized AgentTeams Gateway model route. Replace only the model ID if the deployed Gateway exposes a different configured route; do not change the DSH runtime or authority boundary.
+
+## Non-claims
+
+- A manifest or image build is not a live runtime proof.
+- A DSH receipt is not an accepted AgentTeams Task.
+- `PROJECT_COMPLETED` means the audited collaboration run completed and is ready for named human review; it is not approval, publication, refund, or production execution.
+- Manager mutations require an expiring plan and exact Admin confirmation. Destructive plans additionally require the `DELETE` suffix. A plan preview is not proof that Controller state changed.

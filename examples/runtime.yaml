@@ -1,0 +1,49 @@
+apiVersion: agentteams.io/v1beta1
+kind: MemberRuntimeConfig
+metadata:
+  generation: 1
+  updatedAt: "2026-08-25T00:00:00Z"
+member:
+  name: juchang-evidence-guard
+  runtimeName: juchang-evidence-guard
+  role: worker
+  runtime: dsh
+  matrixUserId: "@juchang-evidence-guard:matrix.example"
+team:
+  name: juchang-change-control
+  leaderRuntimeName: juchang-lead
+  leaderDmRoomId: "!leader:matrix.example"
+  members:
+    - name: juchang-lead
+      runtimeName: juchang-lead
+      role: leader
+      runtime: dsh
+      matrixUserId: "@juchang-lead:matrix.example"
+desired:
+  model:
+    providerId: agentteams-gateway
+    model: step-3.5-flash-2603
+    gatewayUrl: "https://gateway.example"
+  state: Running
+storage:
+  sharedPrefix: shared
+credentials:
+  matrixTokenEnv: AGENTTEAMS_WORKER_MATRIX_TOKEN
+  gatewayKeyEnv: AGENTTEAMS_WORKER_GATEWAY_KEY
+  storageAccessKeyEnv: AGENTTEAMS_FS_ACCESS_KEY
+  storageSecretKeyEnv: AGENTTEAMS_FS_SECRET_KEY
+  serviceAccountTokenPath: /var/run/secrets/agentteams/token
+juchang:
+  roleBindings:
+    material_intake:
+      runtimeName: juchang-material-intake
+      matrixUserId: "@juchang-material-intake:matrix.example"
+    evidence_guard:
+      runtimeName: juchang-evidence-guard
+      matrixUserId: "@juchang-evidence-guard:matrix.example"
+    entity_matcher:
+      runtimeName: juchang-entity-matcher
+      matrixUserId: "@juchang-entity-matcher:matrix.example"
+    approval_guard:
+      runtimeName: juchang-approval-guard
+      matrixUserId: "@juchang-approval-guard:matrix.example"
