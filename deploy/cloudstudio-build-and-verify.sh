@@ -19,13 +19,16 @@ gofmt -w \
   "${agentteams_source}/agentteams-controller/internal/controller/member_reconcile.go" \
   "${agentteams_source}/agentteams-controller/internal/controller/team_controller.go" \
   "${agentteams_source}/agentteams-controller/internal/service/worker_env.go" \
+  "${agentteams_source}/agentteams-controller/internal/server/types.go" \
+  "${agentteams_source}/agentteams-controller/internal/server/resource_handler.go" \
+  "${agentteams_source}/agentteams-controller/internal/server/dsh_env_api_test.go" \
   "${agentteams_source}/agentteams-controller/cmd/agt/create.go" \
   "${agentteams_source}/agentteams-controller/cmd/agt/apply.go" \
   "${agentteams_source}/agentteams-controller/cmd/agt/update.go"
 
 (
   cd "${agentteams_source}/agentteams-controller"
-  go test ./internal/backend ./internal/controller ./internal/service ./cmd/agt
+  go test ./internal/backend ./internal/controller ./internal/service ./internal/server ./cmd/agt
 )
 
 controller_context="${agentteams_source}/agentteams-controller"
