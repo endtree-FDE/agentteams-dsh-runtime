@@ -2,6 +2,7 @@ import { createControllerClient, executeManagerPlan } from "./controller-client.
 import { runManagerPlanner } from "./dsh-runner.mjs";
 import { listManagerEvents, sendMatrixText, syncMatrix } from "./matrix-client.mjs";
 import { confirmationFromText, createManagerPlanStore, validateManagerPlan } from "./manager-runtime.mjs";
+import { CASE_COMMAND_PREFIX, CASE_DECISION_PREFIX, handleSupervisorMessage } from "./supervisor-runtime.mjs";
 
 function compact(value, limit = 3_000) {
   const text = JSON.stringify(value, null, 2);
@@ -12,6 +13,9 @@ export async function handleManagerMessage(config, event, options = {}) {
   const controller = options.controller || createControllerClient(options.env || process.env, options.fetch);
   const store = options.store || createManagerPlanStore(config.planRoot);
   const sendText = options.sendText || sendMatrixText;
+  if (event.body.includes(CASE_COMMAND_PREFIX) || event.body.includes(CASE_DECISION_PREFIX)) {
+    return handleSupervisorMessage(config, event, { ...options, sendText });
+  }
   const confirmation = confirmationFromText(event.body);
   if (confirmation) {
     const plan = store.read(confirmation.planId);

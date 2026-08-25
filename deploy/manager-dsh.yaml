@@ -5,9 +5,12 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.3.1
+  image: juchang/agentteams-dsh-runtime:0.4.0
   env:
-    JUCHANG_DSH_WORKER_IMAGE: juchang/agentteams-dsh-runtime:0.3.1
+    JUCHANG_DSH_WORKER_IMAGE: juchang/agentteams-dsh-runtime:0.4.0
+    JUCHANG_MANAGER_STATE_DIR: /root/agentteams-fs/agents/manager/plans
+    JUCHANG_SUPERVISOR_STATE_DIR: /root/agentteams-fs/agents/manager/supervisor
+    JUCHANG_DSH_HOME: /root/agentteams-fs/agents/manager/dsh-home
   state: Running
   soul: 管理 AgentTeams 的声明式资源；只读查询可直接执行，任何变更都先给出计划并等待同一管理员明确确认。
   agents: 不接管 Team Leader 的 Project/Task 权威状态，不替代具名人工审批，不在消息中回显密钥、Token、密码或内部授权头。

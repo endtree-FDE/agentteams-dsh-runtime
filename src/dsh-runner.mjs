@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import fs from "node:fs";
 import path from "node:path";
@@ -50,7 +51,7 @@ export function parseReceipt(text) {
   return receipt;
 }
 
-async function runDshText(config, prompt, workspace, patch, env = process.env) {
+async function runDshText(config, prompt, workspace, patch, env = process.env, options = {}) {
   const dshBin = env.JUCHANG_DSH_BIN?.trim();
   if (!dshBin || !fs.existsSync(dshBin)) throw new Error("JUCHANG_DSH_BIN is missing or unreadable");
   const node = env.JUCHANG_DSH_NODE?.trim() || process.execPath;
@@ -59,6 +60,7 @@ async function runDshText(config, prompt, workspace, patch, env = process.env) {
     AGENTTEAMS_AI_GATEWAY_URL: config.gatewayUrl,
     AGENTTEAMS_WORKER_GATEWAY_KEY: config.gatewayKey,
     JUCHANG_DSH_MODEL: config.model,
+    ...(options.childEnv || {}),
   };
   return new Promise((resolve, reject) => {
     const child = spawn(node, [dshBin, "--profile", "headless", "--patch", patch, prompt], {
@@ -69,16 +71,44 @@ async function runDshText(config, prompt, workspace, patch, env = process.env) {
     });
     let stdout = "";
     let stderr = "";
+    let eventOffset = 0;
+    let eventRemainder = "";
+    let eventChain = Promise.resolve();
+    const readEvents = () => {
+      const filename = options.eventsPath;
+      if (!filename || !fs.existsSync(filename)) return;
+      const content = fs.readFileSync(filename, "utf8");
+      const fresh = content.slice(eventOffset);
+      eventOffset = content.length;
+      const rows = `${eventRemainder}${fresh}`.split(/\r?\n/);
+      eventRemainder = rows.pop() || "";
+      for (const row of rows) {
+        if (!row.trim()) continue;
+        const event = JSON.parse(row);
+        if (options.onEvent) eventChain = eventChain.then(() => options.onEvent(event));
+      }
+    };
     const timer = setTimeout(() => child.kill(), 180_000);
+    const eventTimer = setInterval(readEvents, 250);
     child.stdout.setEncoding("utf8");
     child.stderr.setEncoding("utf8");
     child.stdout.on("data", (chunk) => { stdout += chunk; });
     child.stderr.on("data", (chunk) => { stderr += chunk; });
-    child.once("error", reject);
-    child.once("exit", (code) => {
+    child.once("error", (error) => {
+      clearInterval(eventTimer);
+      reject(error);
+    });
+    child.once("exit", async (code) => {
       clearTimeout(timer);
-      if (code === 0) resolve(stdout);
-      else reject(new Error(stderr.trim() || `DSH exited ${code}`));
+      clearInterval(eventTimer);
+      try {
+        readEvents();
+        await eventChain;
+        if (code === 0) resolve(stdout);
+        else reject(new Error(stderr.trim() || `DSH exited ${code}`));
+      } catch (error) {
+        reject(error);
+      }
     });
   });
 }
@@ -122,4 +152,28 @@ export async function runManagerPlanner(config, message, env = process.env) {
     String(message || "").slice(0, 8_000),
   ].join("\n");
   return parseReceipt(await runDshText(config, prompt, config.workspaceRoot, patch, env));
+}
+
+export async function runSupervisorTurn(config, thread, prompt, options = {}) {
+  const env = options.env || process.env;
+  const patch = env.JUCHANG_DSH_SUPERVISOR_PATCH?.trim()
+    || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "profiles", "supervisor.patch.yml");
+  const eventsRoot = path.resolve(config.supervisorStateRoot, "events");
+  fs.mkdirSync(eventsRoot, { recursive: true });
+  const eventsPath = path.join(eventsRoot, `${thread.threadId}-${randomUUID()}.jsonl`);
+  fs.writeFileSync(eventsPath, "", "utf8");
+  const plugin = env.JUCHANG_DSH_RESUMABLE_PLUGIN?.trim()
+    || path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "dsh-plugins", "resumable-headless.mjs");
+  const output = await runDshText(config, prompt, config.workspaceRoot, patch, env, {
+    eventsPath,
+    onEvent: options.onEvent,
+    childEnv: {
+      DSH_HOME: config.dshHome,
+      JUCHANG_DSH_SESSION_ID: thread.sessionId,
+      JUCHANG_DSH_SESSION_MODE: thread.sessionCreated ? "resume" : "create",
+      JUCHANG_DSH_EVENTS_PATH: eventsPath,
+      JUCHANG_DSH_RESUMABLE_PLUGIN: plugin,
+    },
+  });
+  return parseReceipt(output);
 }

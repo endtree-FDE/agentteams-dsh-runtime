@@ -116,9 +116,14 @@ async function delegateReady(config, request, projectResponse, teamHarness, arti
 export async function startProject(config, envelope, teamHarness, options = {}) {
   const request = validateProjectEnvelope(config, envelope);
   const artifacts = options.artifacts || createArtifactStore(config, options.env);
-  artifacts.ensureLocal(request.inputPath);
-  resolveSharedPath(config, request.inputPath, "project inputPath");
-  artifacts.push(request.inputPath);
+  const inputFilename = resolveSharedPath(config, request.inputPath, "project inputPath");
+  if (request.inputPayload) {
+    writeAtomic(inputFilename, request.inputPayload);
+    artifacts.push(request.inputPath);
+  } else {
+    artifacts.ensureLocal(request.inputPath);
+    artifacts.push(request.inputPath);
+  }
   const workspace = projectWorkspace(config, request.projectId);
   fs.mkdirSync(workspace, { recursive: true });
   writeAtomic(path.join(workspace, "request.json"), request);

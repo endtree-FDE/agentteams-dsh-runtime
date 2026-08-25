@@ -18,6 +18,8 @@ import { loadManagerConfig } from "../src/manager-config.mjs";
 import { confirmationFromText, createManagerPlanStore, validateManagerPlan } from "../src/manager-runtime.mjs";
 import { assessDeepAgentsNeed } from "../src/complexity-gate.mjs";
 import { createArtifactStore } from "../src/artifact-store.mjs";
+import { createSupervisorSessionStore } from "../src/supervisor-session-store.mjs";
+import { CASE_COMMAND_PREFIX, CASE_DECISION_PREFIX, parseSupervisorCommand, validateSupervisorResult } from "../src/supervisor-runtime.mjs";
 
 const fakeTeamHarnessServer = path.resolve("tests/fixtures/fake-teamharness.mjs");
 
@@ -436,6 +438,132 @@ test("destructive Manager plan requires the explicit DELETE confirmation suffix"
     () => handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: `MANAGER_CONFIRM: ${plan.planId}` }, { store, controller: { request: async () => ({}) }, sendText: async () => {} }),
     /DELETE/,
   );
+});
+
+test("business Supervisor keeps one durable DSH session across management turns", async () => {
+  const value = managerFixture();
+  const supervisorStore = createSupervisorSessionStore(value.config.supervisorStateRoot, () => Date.parse("2026-08-25T12:00:00Z"));
+  const sent = [];
+  const observedSessions = [];
+  const command = (commandId, text) => `${CASE_COMMAND_PREFIX}${JSON.stringify({
+    schema: "juchang-case-command@1",
+    commandId,
+    threadId: "operator-thread-01",
+    text,
+    context: {
+      roomId: "!task:matrix.test",
+      taskId: "wechat-intake-123456abcdef",
+      sourceUrl: "https://example.test/source",
+      sourceTitle: "Activity notice",
+      sourceAuthor: "Official account",
+      intakeKind: "change",
+      taskState: "ready_for_human_review",
+      projectStatus: "completed",
+      approvalState: "needs_human_review",
+      resultExcerpt: "Four receipts are complete.",
+      workflowNodes: [],
+      safetyCounters: { productionWrites: 0, publicPublishes: 0, realRefunds: 0, externalMessages: 0 },
+    },
+  })}`;
+  const runTurn = async (_config, thread) => {
+    observedSessions.push({ sessionId: thread.sessionId, created: thread.sessionCreated });
+    return { schema: "juchang-case-supervisor-turn@1", action: "status", message: "四个责任位均已完成，等待人工复核。", teamInstruction: "", approval: null };
+  };
+  const sendText = async (_config, roomId, body) => sent.push({ roomId, body });
+
+  await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: command("11111111-1111-4111-8111-111111111111", "现在做到哪了") }, { supervisorStore, runTurn, sendText });
+  await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: command("22222222-2222-4222-8222-222222222222", "解释当前结论") }, { supervisorStore, runTurn, sendText });
+
+  assert.equal(observedSessions.length, 2);
+  assert.equal(observedSessions[0].sessionId, observedSessions[1].sessionId);
+  assert.deepEqual(observedSessions.map((item) => item.created), [false, true]);
+  assert.equal(supervisorStore.read("operator-thread-01").turns.length, 2);
+  assert.equal(sent.filter((item) => item.body.includes("JUCHANG_CASE_RESULT")).length, 2);
+});
+
+test("business Supervisor creates an approval card and resolves it once", async () => {
+  const value = managerFixture();
+  const supervisorStore = createSupervisorSessionStore(value.config.supervisorStateRoot);
+  const sent = [];
+  const commandId = "33333333-3333-4333-8333-333333333333";
+  const body = `${CASE_COMMAND_PREFIX}${JSON.stringify({
+    schema: "juchang-case-command@1",
+    commandId,
+    threadId: "operator-thread-02",
+    text: "把当前任务归档",
+    context: {
+      roomId: "!task:matrix.test",
+      taskId: "wechat-intake-123456abcdef",
+      sourceUrl: "https://example.test/source",
+      sourceTitle: "Activity notice",
+      sourceAuthor: "Official account",
+      intakeKind: "change",
+      taskState: "ready_for_human_review",
+      projectStatus: "completed",
+      approvalState: "needs_human_review",
+      resultExcerpt: "Four receipts are complete.",
+      workflowNodes: [],
+      safetyCounters: { productionWrites: 0, publicPublishes: 0, realRefunds: 0, externalMessages: 0 },
+    },
+  })}`;
+  await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body }, {
+    supervisorStore,
+    runTurn: async () => ({
+      schema: "juchang-case-supervisor-turn@1",
+      action: "approval_required",
+      message: "归档会改变工作队列，需要你确认。",
+      teamInstruction: "",
+      approval: { action: "archive", summary: "归档当前任务", reason: "四份收据已齐并等待人工处置。" },
+    }),
+    sendText: async (_config, roomId, text) => sent.push({ roomId, body: text }),
+  });
+  const approval = supervisorStore.read("operator-thread-02").approvals[0];
+  assert.equal(approval.status, "pending");
+
+  const decision = `${CASE_DECISION_PREFIX}${JSON.stringify({
+    schema: "juchang-case-decision@1",
+    threadId: "operator-thread-02",
+    approvalId: approval.approvalId,
+    decision: "approve",
+    note: "确认归档",
+  })}`;
+  await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: decision }, {
+    supervisorStore,
+    sendText: async (_config, roomId, text) => sent.push({ roomId, body: text }),
+  });
+  assert.equal(supervisorStore.read("operator-thread-02").approvals[0].status, "approved");
+  assert.match(sent.at(-1).body, /juchang-case-approval-resolution@1/);
+});
+
+test("Supervisor result cannot invent an approval target or unsupported action", () => {
+  const command = parseSupervisorCommand(`${CASE_COMMAND_PREFIX}${JSON.stringify({
+    schema: "juchang-case-command@1",
+    commandId: "44444444-4444-4444-8444-444444444444",
+    threadId: "operator-thread-03",
+    text: "delete everything",
+    context: {},
+  })}`);
+  assert.throws(() => validateSupervisorResult({ schema: "juchang-case-supervisor-turn@1", action: "approval_required", message: "delete", approval: { action: "delete_team" } }, command), /unsupported/);
+  assert.throws(() => validateSupervisorResult({ schema: "juchang-case-supervisor-turn@1", action: "approval_required", message: "archive", approval: { action: "archive" } }, command), /target is missing/);
+});
+
+test("Leader materializes a bounded inline Supervisor input before planning the DAG", async () => {
+  const value = leaderFixture();
+  const envelope = { ...value.envelope, inputPath: undefined, inputPayload: { instruction: "Read only", evidenceRefs: ["official-source"] } };
+  const plannedTasks = envelope.tasks.map((task, index) => ({ task_id: task.taskId, title: task.title, assigned_to: task.assignedTo, depends_on: task.dependsOn, status: index === 0 ? "ready" : "pending" }));
+  const calls = [];
+  const teamHarness = {
+    callProjectflow: async (_config, action) => {
+      calls.push(action);
+      if (action === "create_project") return { ok: true, project: { project_id: value.projectId, status: "active" } };
+      if (action === "plan_dag") return { ok: true, project: { project_id: value.projectId, status: "active", tasks: plannedTasks }, readyNodes: [plannedTasks[0]] };
+      throw new Error(`unexpected ${action}`);
+    },
+    callTaskflow: async () => ({ ok: true, task: { status: "assigned", eventId: "$task" }, synced: true, notification: { sent: true } }),
+  };
+  await startProject(value.config, envelope, teamHarness, { artifacts: { ensureLocal() {}, push() {} } });
+  assert.deepEqual(JSON.parse(fs.readFileSync(path.join(value.shared, `projects/${value.projectId}/workspace/input.json`), "utf8")), envelope.inputPayload);
+  assert.deepEqual(calls, ["create_project", "plan_dag"]);
 });
 
 test("Deep Agents gate is evidence-role-only and deterministic", () => {

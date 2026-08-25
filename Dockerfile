@@ -24,6 +24,7 @@ COPY LICENSE README.md THIRD_PARTY_NOTICES.md ./
 COPY bin ./bin
 COPY acp ./acp
 COPY profiles ./profiles
+COPY dsh-plugins ./dsh-plugins
 COPY src ./src
 RUN pip install --no-cache-dir deepagents==0.7.6 deepagents-acp==0.0.8 langchain-deepseek==1.1.0
 COPY --from=agentteams-source /src/AgentTeams/plugins/teamharness/mcp /opt/agentteams/teamharness/mcp

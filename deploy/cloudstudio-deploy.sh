@@ -12,7 +12,7 @@ namespace="${AGENTTEAMS_NAMESPACE:-agentteams}"
 release="${AGENTTEAMS_RELEASE:-agentteams}"
 controller_repository="${JUCHANG_CONTROLLER_REPOSITORY:-juchang/agentteams-controller-dsh}"
 controller_tag="${JUCHANG_CONTROLLER_TAG:-v1.2.3-0.3.0}"
-runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.3.1}"
+runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.4.0}"
 
 if command -v kind >/dev/null 2>&1 && kind get clusters 2>/dev/null | grep -q .; then
   kind_cluster="${KIND_CLUSTER_NAME:-$(kind get clusters | head -n 1)}"

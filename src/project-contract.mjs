@@ -15,6 +15,19 @@ export function validateProjectEnvelope(config, value) {
   const projectId = safeId(value.dispatchId, "dispatchId");
   if (!/^![^:\s]+:.+$/.test(value.roomId || "")) throw new Error("roomId must be a Matrix room id");
   if (!Array.isArray(value.tasks) || value.tasks.length !== roleOrder.length) throw new Error("project requires exactly four tasks");
+  let inputPayload = null;
+  if (value.inputPayload !== undefined) {
+    if (!value.inputPayload || typeof value.inputPayload !== "object" || Array.isArray(value.inputPayload)) {
+      throw new Error("inputPayload must be an object");
+    }
+    const encoded = JSON.stringify(value.inputPayload);
+    if (Buffer.byteLength(encoded, "utf8") > 48 * 1024) throw new Error("inputPayload exceeds 48 KiB");
+    inputPayload = JSON.parse(encoded);
+  }
+  const inputPath = inputPayload
+    ? `projects/${projectId}/workspace/input.json`
+    : String(value.inputPath || "");
+  if (!inputPath) throw new Error("project requires inputPath or inputPayload");
   const tasks = value.tasks.map((task, index) => {
     const taskId = `${projectId}-${String(index + 1).padStart(2, "0")}`;
     const role = roleOrder[index];
@@ -45,7 +58,8 @@ export function validateProjectEnvelope(config, value) {
     sourceHash: typeof value.sourceHash === "string" ? value.sourceHash.trim() : "",
     intakeKind: ["new_event", "change", "retrospective", "ambiguous"].includes(value.intakeKind) ? value.intakeKind : "ambiguous",
     roomId: value.roomId,
-    inputPath: String(value.inputPath || ""),
+    inputPath,
+    inputPayload,
     publicWriteAllowed: false,
     tasks,
   });
