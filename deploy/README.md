@@ -22,6 +22,12 @@ JUCHANG_CONFIRM_DEPLOY=1 bash deploy/cloudstudio-deploy.sh
 
 The deploy script refuses to write unless `JUCHANG_CONFIRM_DEPLOY=1` is present.
 
+When `0.3.1` is already present on the CloudStudio host, the checked-in
+`deploy/Dockerfile.runtime-overlay` reuses its verified DSH, Python and
+TeamHarness layers and replaces only the locked Node dependencies and runtime
+source. The resulting `0.4.0` image has the same entrypoint and authority
+boundary as the full build; use the full Dockerfile for a clean-room release.
+
 An existing all-in-one CloudStudio installation can keep its current network, ports, state volume, and manager filesystem while replacing only the embedded Controller image:
 
 ```bash

@@ -1,0 +1,16 @@
+ARG BASE_IMAGE=juchang/agentteams-dsh-runtime:0.3.1
+FROM ${BASE_IMAGE}
+
+WORKDIR /opt/agentteams-dsh-runtime
+COPY package.json package-lock.json ./
+RUN npm ci --omit=dev --no-audit --no-fund
+COPY LICENSE README.md THIRD_PARTY_NOTICES.md ./
+COPY bin ./bin
+COPY acp ./acp
+COPY profiles ./profiles
+COPY dsh-plugins ./dsh-plugins
+COPY src ./src
+
+WORKDIR /workspace
+ENV JUCHANG_DSH_BIN=/usr/local/lib/node_modules/@deepseek-ai/dsh/lib/bin.js
+ENTRYPOINT ["node", "/opt/agentteams-dsh-runtime/bin/bootstrap.mjs"]
