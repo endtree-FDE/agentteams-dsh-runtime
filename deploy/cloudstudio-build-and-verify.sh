@@ -5,7 +5,7 @@ runtime_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 agentteams_source="${AGENTTEAMS_SOURCE:?Set AGENTTEAMS_SOURCE to the AgentTeams v1.2.3 checkout}"
 controller_image="${JUCHANG_CONTROLLER_IMAGE:-juchang/agentteams-controller-dsh:v1.2.3-0.3.0}"
 controller_builder_image="${JUCHANG_CONTROLLER_BUILDER_IMAGE:-juchang/agentteams-controller-dsh-builder:v1.2.3-0.3.0}"
-runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.4.5}"
+runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.4.6}"
 controller_base_image="${JUCHANG_CONTROLLER_BASE_IMAGE:-higress-registry.cn-hangzhou.cr.aliyuncs.com/agentteams/agentteams-embedded:v1.2.3}"
 
 test -f "${agentteams_source}/agentteams-controller/go.mod"

@@ -161,6 +161,12 @@ export async function handleSupervisorMessage(config, event, options = {}) {
   const store = options.supervisorStore || createSupervisorSessionStore(config.supervisorStateRoot);
   const decision = parseSupervisorDecision(event.body);
   if (decision) {
+    const existing = store.findApproval(decision.threadId, decision.approvalId);
+    if (existing?.status !== "pending") {
+      if (existing && existing.decision === decision.decision && existing.note === decision.note) {
+        return { schema: "juchang-case-approval-resolution@1", threadId: decision.threadId, approval: existing, repeated: true };
+      }
+    }
     const approval = store.resolveApproval(decision.threadId, decision.approvalId, decision.decision, decision.note);
     const payload = { schema: "juchang-case-approval-resolution@1", threadId: decision.threadId, approval };
     await sendText(config, event.roomId, `${CASE_RESULT_PREFIX}${JSON.stringify(payload)}`);
@@ -169,6 +175,10 @@ export async function handleSupervisorMessage(config, event, options = {}) {
 
   const command = parseSupervisorCommand(event.body);
   if (!command) return null;
+  const claim = store.beginCommand(command.threadId, command.commandId);
+  if (!claim.claimed) {
+    return { schema: "juchang-case-command-replay@1", commandId: command.commandId, threadId: command.threadId, status: claim.status, repeated: true };
+  }
   const thread = store.open(command.threadId);
   let sessionCreated = thread.sessionCreated;
   await sendText(config, event.roomId, `${CASE_EVENT_PREFIX}${JSON.stringify({ schema: "juchang-case-event@1", commandId: command.commandId, threadId: command.threadId, kind: "run_started", at: new Date().toISOString() })}`);
@@ -200,5 +210,6 @@ export async function handleSupervisorMessage(config, event, options = {}) {
   const payload = resultEnvelope(command, validated, { approval });
   store.appendTurn(command.threadId, { commandId: command.commandId, input: command.text, action: validated.action, output: validated.message });
   await sendText(config, event.roomId, `${CASE_RESULT_PREFIX}${JSON.stringify(payload)}`);
+  store.completeCommand(command.threadId, command.commandId);
   return payload;
 }

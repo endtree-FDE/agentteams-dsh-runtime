@@ -26,6 +26,7 @@ function createThread(threadId, now) {
     sessionId: `juchang-supervisor-${digest}`,
     sessionCreated: false,
     revision: 0,
+    commands: [],
     turns: [],
     approvals: [],
     createdAt: new Date(now).toISOString(),
@@ -56,6 +57,33 @@ export function createSupervisorSessionStore(root, now = () => Date.now()) {
     markSessionCreated(threadId) {
       return update(threadId, (state) => ({ ...state, sessionCreated: true }));
     },
+    beginCommand(threadId, commandId) {
+      let claim = null;
+      update(threadId, (state) => {
+        if ((state.turns || []).some((turn) => turn.commandId === commandId)) {
+          claim = { claimed: false, status: "completed" };
+          return state;
+        }
+        const commands = state.commands || [];
+        const existing = commands.find((command) => command.commandId === commandId);
+        if (existing) {
+          claim = { claimed: false, status: existing.status };
+          return state;
+        }
+        const command = { commandId, status: "in_progress", startedAt: new Date(now()).toISOString(), completedAt: "" };
+        claim = { claimed: true, status: command.status };
+        return { ...state, commands: [...commands, command].slice(-120) };
+      });
+      return claim;
+    },
+    completeCommand(threadId, commandId) {
+      return update(threadId, (state) => ({
+        ...state,
+        commands: (state.commands || []).map((command) => command.commandId === commandId
+          ? { ...command, status: "completed", completedAt: new Date(now()).toISOString() }
+          : command),
+      }));
+    },
     appendTurn(threadId, turn) {
       return update(threadId, (state) => ({
         ...state,
@@ -79,6 +107,9 @@ export function createSupervisorSessionStore(root, now = () => Date.now()) {
       };
       update(threadId, (state) => ({ ...state, approvals: [...state.approvals, approval].slice(-40) }));
       return approval;
+    },
+    findApproval(threadId, approvalId) {
+      return (read(threadId)?.approvals || []).find((approval) => approval.approvalId === approvalId) || null;
     },
     resolveApproval(threadId, approvalId, decision, note) {
       let resolved = null;

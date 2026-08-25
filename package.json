@@ -1,6 +1,6 @@
 {
   "name": "@juchang/agentteams-dsh-runtime",
-  "version": "0.4.5",
+  "version": "0.4.6",
   "description": "Unofficial AgentTeams Team Leader/Worker runtime built on DSH",
   "type": "module",
   "license": "Apache-2.0",

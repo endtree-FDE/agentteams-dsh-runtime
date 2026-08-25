@@ -5,7 +5,7 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.5
+  image: juchang/agentteams-dsh-runtime:0.4.6
   env:
     JUCHANG_DSH_ROLE: team_leader
     JUCHANG_ROLE_BINDINGS_JSON: >-
@@ -21,7 +21,7 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.5
+  image: juchang/agentteams-dsh-runtime:0.4.6
   env:
     JUCHANG_DSH_ROLE: material_intake
   state: Running
@@ -35,7 +35,7 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.5
+  image: juchang/agentteams-dsh-runtime:0.4.6
   env:
     JUCHANG_DSH_ROLE: evidence_guard
   state: Running
@@ -49,7 +49,7 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.5
+  image: juchang/agentteams-dsh-runtime:0.4.6
   env:
     JUCHANG_DSH_ROLE: entity_matcher
   state: Running
@@ -63,7 +63,7 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.5
+  image: juchang/agentteams-dsh-runtime:0.4.6
   env:
     JUCHANG_DSH_ROLE: approval_guard
   state: Running

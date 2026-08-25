@@ -480,8 +480,10 @@ test("business Supervisor keeps one durable DSH session across management turns"
 
   await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: command("11111111-1111-4111-8111-111111111111", "现在做到哪了") }, { supervisorStore, runTurn, sendText });
   await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: command("22222222-2222-4222-8222-222222222222", "解释当前结论") }, { supervisorStore, runTurn, sendText });
+  const replay = await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: command("11111111-1111-4111-8111-111111111111", "现在做到哪了") }, { supervisorStore, runTurn, sendText });
 
   assert.equal(observedSessions.length, 2);
+  assert.equal(replay.repeated, true);
   assert.equal(observedSessions[0].sessionId, observedSessions[1].sessionId);
   assert.deepEqual(observedSessions.map((item) => item.created), [false, true]);
   assert.equal(supervisorStore.read("operator-thread-01").turns.length, 2);
@@ -526,6 +528,13 @@ test("business Supervisor creates an approval card and resolves it once", async 
   });
   const approval = supervisorStore.read("operator-thread-02").approvals[0];
   assert.equal(approval.status, "pending");
+  const replayedCommand = await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body }, {
+    supervisorStore,
+    runTurn: async () => { throw new Error("replayed command must not run"); },
+    sendText: async () => { throw new Error("replayed command must stay silent"); },
+  });
+  assert.equal(replayedCommand.repeated, true);
+  assert.equal(supervisorStore.read("operator-thread-02").approvals.length, 1);
 
   const decision = `${CASE_DECISION_PREFIX}${JSON.stringify({
     schema: "juchang-case-decision@1",
@@ -540,6 +549,13 @@ test("business Supervisor creates an approval card and resolves it once", async 
   });
   assert.equal(supervisorStore.read("operator-thread-02").approvals[0].status, "approved");
   assert.match(sent.at(-1).body, /juchang-case-approval-resolution@1/);
+  const sentAfterResolution = sent.length;
+  const replayedDecision = await handleManagerMessage(value.config, { roomId: value.config.managerRoomId, body: decision }, {
+    supervisorStore,
+    sendText: async (_config, roomId, text) => sent.push({ roomId, body: text }),
+  });
+  assert.equal(replayedDecision.repeated, true);
+  assert.equal(sent.length, sentAfterResolution);
 });
 
 test("Supervisor result cannot invent an approval target or unsupported action", () => {

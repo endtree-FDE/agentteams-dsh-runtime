@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-from_image="${JUCHANG_RUNTIME_FROM_IMAGE:-juchang/agentteams-dsh-runtime:0.4.4}"
-to_image="${JUCHANG_RUNTIME_TO_IMAGE:-juchang/agentteams-dsh-runtime:0.4.5}"
+from_image="${JUCHANG_RUNTIME_FROM_IMAGE:-juchang/agentteams-dsh-runtime:0.4.5}"
+to_image="${JUCHANG_RUNTIME_TO_IMAGE:-juchang/agentteams-dsh-runtime:0.4.6}"
 stamp="${JUCHANG_RUNTIME_BACKUP_STAMP:-$(date -u +%Y%m%dT%H%M%SZ)}"
 targets=(
   agentteams-manager
@@ -65,7 +65,7 @@ for target in "${targets[@]}"; do
     echo "Unexpected image for ${target}: ${current_image}" >&2
     exit 2
   }
-  backup="${target}-backup-044-${stamp}"
+  backup="${target}-backup-prev-${stamp}"
   ! docker inspect "${backup}" >/dev/null 2>&1 || {
     echo "Backup container already exists: ${backup}" >&2
     exit 2
