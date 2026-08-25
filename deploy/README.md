@@ -30,6 +30,8 @@ JUCHANG_CONFIRM_UPGRADE=1 bash deploy/cloudstudio-upgrade-embedded.sh
 
 The previous Controller remains stopped as `agentteams-controller-v122-backup`. The script restores it automatically when the new `/healthz` does not become ready within two minutes.
 
+For a real Manager-room smoke test, copy `cloudstudio-matrix-message.sh` into the embedded Controller and run it there with a Manager room ID and one Admin message. It logs in from the Controller's existing environment, waits for a new `MANAGER_*` response, logs out, and never prints the access token or password.
+
 `step-3.5-flash-2603` is the verified CloudStudio route used by the checked-in manifests. Replace only the model ID when another authorized AgentTeams Gateway route is verified; do not change the DSH runtime or authority boundary.
 
 ## Non-claims
