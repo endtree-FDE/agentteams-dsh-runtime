@@ -547,6 +547,36 @@ test("Supervisor result cannot invent an approval target or unsupported action",
   assert.throws(() => validateSupervisorResult({ schema: "juchang-case-supervisor-turn@1", action: "approval_required", message: "archive", approval: { action: "archive" } }, command), /target is missing/);
 });
 
+test("Supervisor answers expose only exact facts from the current case context", () => {
+  const command = parseSupervisorCommand(`${CASE_COMMAND_PREFIX}${JSON.stringify({
+    schema: "juchang-case-command@1",
+    commandId: "45454545-4545-4545-8545-454545454545",
+    threadId: "operator-thread-04",
+    text: "为什么冲突",
+    context: { resultExcerpt: "补演日期缺失，退款状态存在冲突，等待人工复核。" },
+  })}`);
+  const grounded = validateSupervisorResult({
+    schema: "juchang-case-supervisor-turn@1",
+    action: "answer",
+    message: "模型补充的猜测不得显示。",
+    groundedFacts: ["退款状态存在冲突", "材料中不存在的原因"],
+    teamInstruction: "",
+    approval: null,
+  }, command);
+  assert.equal(grounded.action, "answer");
+  assert.equal(grounded.message, "退款状态存在冲突");
+  const ungrounded = validateSupervisorResult({
+    schema: "juchang-case-supervisor-turn@1",
+    action: "answer",
+    message: "可能是票种差异。",
+    groundedFacts: [],
+    teamInstruction: "",
+    approval: null,
+  }, command);
+  assert.equal(ungrounded.action, "clarify");
+  assert.match(ungrounded.message, /材料不足/);
+});
+
 test("Supervisor patch gives Cordis Loader a fixed string plugin path", () => {
   const patch = fs.readFileSync("profiles/supervisor.patch.yml", "utf8");
   assert.match(patch, /name: \/opt\/agentteams-dsh-runtime\/dsh-plugins\/resumable-headless\.mjs/);

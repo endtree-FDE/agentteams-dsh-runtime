@@ -89,10 +89,12 @@ export function parseSupervisorDecision(body) {
 export function buildSupervisorPrompt(command) {
   return [
     "Return one compact JSON object only with schema juchang-case-supervisor-turn@1.",
-    "Fields: schema, action, message, teamInstruction, approval.",
+    "Fields: schema, action, message, groundedFacts, teamInstruction, approval.",
     "action is answer, status, clarify, team_dispatch, or approval_required.",
     "Use team_dispatch only for read-only preparation that genuinely benefits from all four roles.",
     "Use approval_required for archive, restore, request_recheck, or prepare_formal_change.",
+    "groundedFacts is an array of zero to six exact verbatim substrings copied from CURRENT CONTEXT; do not paraphrase them.",
+    "answer and status require at least one groundedFacts item; if none exists, choose clarify.",
     "approval is null unless approval_required; otherwise include action, summary, reason.",
     "Never claim that a write, publication, refund, message, approval, or dispatch already happened.",
     "Do not invent roomId, taskId, source, dates, people, organizations, places, series, or evidence.",
@@ -107,12 +109,25 @@ export function validateSupervisorResult(value, command) {
   if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error("Supervisor result must be an object");
   if (value.schema !== "juchang-case-supervisor-turn@1") throw new Error("Supervisor result schema is unsupported");
   if (!actionSet.has(value.action)) throw new Error("Supervisor result action is unsupported");
-  const message = safeText(value.message, 3_000);
+  let message = safeText(value.message, 3_000);
   if (!message) throw new Error("Supervisor result message is empty");
+  const corpus = JSON.stringify(command.context);
+  const groundedFacts = Array.isArray(value.groundedFacts)
+    ? value.groundedFacts.slice(0, 6).map((fact) => safeText(fact, 500)).filter((fact) => fact && corpus.includes(fact))
+    : [];
+  let action = value.action;
+  if (action === "answer" || action === "status") {
+    if (!groundedFacts.length) {
+      action = "clarify";
+      message = "现有案件材料不足以回答这个问题，请补充可核对的原文或具体对象。";
+    } else {
+      message = groundedFacts.join("；");
+    }
+  }
   const teamInstruction = safeText(value.teamInstruction, 2_000);
-  if (value.action === "team_dispatch" && !teamInstruction) throw new Error("team_dispatch requires teamInstruction");
+  if (action === "team_dispatch" && !teamInstruction) throw new Error("team_dispatch requires teamInstruction");
   let approval = null;
-  if (value.action === "approval_required") {
+  if (action === "approval_required") {
     if (!value.approval || typeof value.approval !== "object") throw new Error("approval_required needs approval");
     const action = safeText(value.approval.action, 80);
     if (!approvalActions.has(action)) throw new Error("Supervisor approval action is unsupported");
@@ -125,7 +140,7 @@ export function validateSupervisorResult(value, command) {
       reason: safeText(value.approval.reason, 500) || message,
     };
   }
-  return Object.freeze({ schema: value.schema, action: value.action, message, teamInstruction, approval });
+  return Object.freeze({ schema: value.schema, action, message, groundedFacts, teamInstruction, approval });
 }
 
 function resultEnvelope(command, result, extra = {}) {

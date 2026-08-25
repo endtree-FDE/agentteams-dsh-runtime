@@ -39,6 +39,6 @@ export function loadManagerConfig(env = process.env) {
     planRoot: path.resolve(env.JUCHANG_MANAGER_STATE_DIR?.trim() || path.join(workspaceRoot, ".agentteams-dsh-manager")),
     supervisorStateRoot: path.resolve(env.JUCHANG_SUPERVISOR_STATE_DIR?.trim() || path.join(workspaceRoot, ".juchang-supervisor")),
     dshHome: path.resolve(env.JUCHANG_DSH_HOME?.trim() || path.join(workspaceRoot, ".dsh-supervisor")),
-    defaultWorkerImage: env.JUCHANG_DSH_WORKER_IMAGE?.trim() || "juchang/agentteams-dsh-runtime:0.4.2",
+    defaultWorkerImage: env.JUCHANG_DSH_WORKER_IMAGE?.trim() || "juchang/agentteams-dsh-runtime:0.4.3",
   });
 }
