@@ -81,12 +81,6 @@ if [[ ${#pending[@]} -eq 0 ]]; then
   exit 0
 fi
 
-leader_port="$(docker port agentteams-worker-juchang-v14-lead 18799/tcp)"
-[[ "${leader_port}" == "127.0.0.1:18888" ]] || {
-  echo "Unexpected Leader port binding: ${leader_port}" >&2
-  exit 2
-}
-
 for target in "${pending[@]}"; do
   backup="${backups[${target}]}"
   env_file="$(mktemp "${TMPDIR:-/tmp}/agentteams-runtime-env.XXXXXX")"
@@ -96,6 +90,15 @@ for target in "${pending[@]}"; do
   network="$(docker inspect -f '{{.HostConfig.NetworkMode}}' "${target}")"
   restart="$(docker inspect -f '{{.HostConfig.RestartPolicy.Name}}' "${target}")"
   restart="${restart:-no}"
+  port_args=()
+  while IFS='|' read -r container_port host_ip host_port; do
+    [[ -n "${container_port}" && -n "${host_port}" ]] || continue
+    if [[ -n "${host_ip}" ]]; then
+      port_args+=( -p "${host_ip}:${host_port}:${container_port}" )
+    else
+      port_args+=( -p "${host_port}:${container_port}" )
+    fi
+  done < <(docker inspect -f='{{range $port, $bindings := .HostConfig.PortBindings}}{{range $bindings}}{{printf "%s|%s|%s\n" $port .HostIp .HostPort}}{{end}}{{end}}' "${target}")
 
   docker rename "${target}" "${backup}"
   docker stop "${backup}" >/dev/null
@@ -108,9 +111,7 @@ for target in "${pending[@]}"; do
     --env-file "${env_file}"
     --volumes-from "${backup}"
   )
-  if [[ "${target}" == "agentteams-worker-juchang-v14-lead" ]]; then
-    run_args+=( -p 127.0.0.1:18888:18799 )
-  fi
+  run_args+=("${port_args[@]}")
   run_args+=("${to_image}")
   "${run_args[@]}" >/dev/null
   upgraded+=("${target}")
