@@ -136,8 +136,8 @@ export function validateSupervisorResult(value, command) {
     }
     approval = {
       action,
-      summary: safeText(value.approval.summary, 500) || message,
-      reason: safeText(value.approval.reason, 500) || message,
+      summary: `${({ archive: "归档", restore: "恢复", request_recheck: "重新核对", prepare_formal_change: "准备正式变更" })[action]}当前案件`,
+      reason: groundedFacts.join("；") || "管理员已提出这项动作，执行前需要明确确认。",
     };
   }
   return Object.freeze({ schema: value.schema, action, message, groundedFacts, teamInstruction, approval });

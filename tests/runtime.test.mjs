@@ -577,6 +577,26 @@ test("Supervisor answers expose only exact facts from the current case context",
   assert.match(ungrounded.message, /材料不足/);
 });
 
+test("Supervisor approval copy ignores model-authored claims", () => {
+  const command = parseSupervisorCommand(`${CASE_COMMAND_PREFIX}${JSON.stringify({
+    schema: "juchang-case-command@1",
+    commandId: "46464646-4646-4646-8646-464646464646",
+    threadId: "operator-thread-05",
+    text: "归档当前案件",
+    context: { roomId: "!case:matrix.test", taskId: "formal-case-01", resultExcerpt: "退款状态存在冲突" },
+  })}`);
+  const result = validateSupervisorResult({
+    schema: "juchang-case-supervisor-turn@1",
+    action: "approval_required",
+    message: "等待确认",
+    groundedFacts: ["退款状态存在冲突"],
+    teamInstruction: "",
+    approval: { action: "archive", summary: "模型声称已经归档", reason: "模型推测的理由" },
+  }, command);
+  assert.equal(result.approval.summary, "归档当前案件");
+  assert.equal(result.approval.reason, "退款状态存在冲突");
+});
+
 test("Supervisor patch gives Cordis Loader a fixed string plugin path", () => {
   const patch = fs.readFileSync("profiles/supervisor.patch.yml", "utf8");
   assert.match(patch, /name: \/opt\/agentteams-dsh-runtime\/dsh-plugins\/resumable-headless\.mjs/);
