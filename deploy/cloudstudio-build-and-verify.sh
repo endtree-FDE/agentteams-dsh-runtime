@@ -4,6 +4,7 @@ set -euo pipefail
 runtime_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 agentteams_source="${AGENTTEAMS_SOURCE:?Set AGENTTEAMS_SOURCE to the AgentTeams v1.2.3 checkout}"
 controller_image="${JUCHANG_CONTROLLER_IMAGE:-juchang/agentteams-controller-dsh:v1.2.3-0.3.0}"
+controller_builder_image="${JUCHANG_CONTROLLER_BUILDER_IMAGE:-juchang/agentteams-controller-dsh-builder:v1.2.3-0.3.0}"
 runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.3.0}"
 controller_base_image="${JUCHANG_CONTROLLER_BASE_IMAGE:-higress-registry.cn-hangzhou.cr.aliyuncs.com/agentteams/agentteams-embedded:v1.2.3}"
 
@@ -31,16 +32,23 @@ controller_context="${agentteams_source}/agentteams-controller"
 mkdir -p "${controller_context}/agent"
 cp -R "${agentteams_source}/manager/agent/." "${controller_context}/agent/"
 overlay_root="$(mktemp -d "${TMPDIR:-/tmp}/agentteams-controller-overlay.XXXXXX")"
+builder_container=""
 cleanup() {
+  if [[ -n "${builder_container:-}" ]]; then
+    docker rm -f "${builder_container}" >/dev/null 2>&1 || true
+  fi
   if [[ -n "${overlay_root:-}" && "${overlay_root}" != "/" && -d "${overlay_root}" ]]; then
     rm -rf -- "${overlay_root}"
   fi
 }
 trap cleanup EXIT
 
-docker build --target builder --output "type=local,dest=${overlay_root}/builder" -f "${controller_context}/Dockerfile" "${controller_context}"
-cp "${overlay_root}/builder/agentteams-controller" "${overlay_root}/agentteams-controller"
-cp "${overlay_root}/builder/agt" "${overlay_root}/agt"
+docker build --target builder -t "${controller_builder_image}" -f "${controller_context}/Dockerfile" "${controller_context}"
+builder_container="$(docker create "${controller_builder_image}")"
+docker cp "${builder_container}:/agentteams-controller" "${overlay_root}/agentteams-controller"
+docker cp "${builder_container}:/agt" "${overlay_root}/agt"
+docker rm "${builder_container}" >/dev/null
+builder_container=""
 mkdir -p "${overlay_root}/crd"
 cp -R "${agentteams_source}/agentteams-controller/config/crd/." "${overlay_root}/crd/"
 cp "${runtime_root}/deploy/Dockerfile.controller-overlay" "${overlay_root}/Dockerfile"
