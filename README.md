@@ -4,7 +4,7 @@ Unofficial community Manager, Team Leader and Worker runtime for AgentTeams, bui
 
 ## Current status
 
-`0.4.0` implements an authoritative Worker bridge boundary:
+`0.4.1` implements an authoritative Worker bridge boundary:
 
 1. read and validate an AgentTeams `MemberRuntimeConfig` YAML snapshot;
 2. join the Worker identity to Matrix through the injected access token;
@@ -15,9 +15,9 @@ Unofficial community Manager, Team Leader and Worker runtime for AgentTeams, bui
 7. use official `submit_task` for `SUCCESS_WITH_NOTES` or `BLOCKED`;
 8. mention the exact Team Leader identity in the Matrix task room.
 
-`0.4.0` also includes an executable DSH Team Leader bridge. It creates the fixed four-role DAG, delegates only official `readyNodes`, synchronizes task inputs and receipts through AgentTeams MinIO, accepts only `check_task.effective=true` zero-write receipts, performs terminal readback, runs a DSH Leader summary, and completes the Project only after all four audited nodes are terminal. A completed run ends at `READY_FOR_HUMAN_REVIEW`, never at approval or publication.
+`0.4.1` also includes an executable DSH Team Leader bridge. It creates the fixed four-role DAG, delegates only official `readyNodes`, synchronizes task inputs and receipts through AgentTeams MinIO, accepts only `check_task.effective=true` zero-write receipts, performs terminal readback, runs a DSH Leader summary, and completes the Project only after all four audited nodes are terminal. A completed run ends at `READY_FOR_HUMAN_REVIEW`, never at approval or publication.
 
-`0.4.0` adds a business Supervisor beside the infrastructure Manager. One operator thread maps to one durable DSH Session; a custom runner uses the official `ctx.agents.create()` / `ctx.agents.resume()` boundary, emits redacted progress events, prepares four-role team dispatches, and pauses governed actions as explicit approve/edit/reject cards. The editor reaches it through an authenticated server-side Matrix gateway; DSH Web and Matrix credentials are never exposed to the browser.
+`0.4.1` adds a business Supervisor beside the infrastructure Manager. One operator thread maps to one durable DSH Session; a custom runner uses the official `ctx.agents.create()` / `ctx.agents.resume()` boundary, emits redacted progress events, prepares four-role team dispatches, and pauses governed actions as explicit approve/edit/reject cards. The editor reaches it through an authenticated server-side Matrix gateway; DSH Web and Matrix credentials are never exposed to the browser.
 
 The DSH Manager receives only the configured Admin DM. DSH converts natural language into a bounded Controller plan. Reads execute directly; mutations require an expiring exact confirmation; deletes additionally require the `DELETE` suffix. Controller responses are redacted before Matrix delivery, and a plan cannot select a non-DSH runtime, arbitrary image, or `AGENTTEAMS_*` environment value.
 

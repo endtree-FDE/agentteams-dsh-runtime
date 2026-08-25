@@ -65,7 +65,7 @@ export class TeamHarnessClient {
     await this.request("initialize", {
       protocolVersion: "2024-11-05",
       capabilities: {},
-      clientInfo: { name: "agentteams-dsh-runtime", version: "0.4.0" },
+      clientInfo: { name: "agentteams-dsh-runtime", version: "0.4.1" },
     });
     const listed = await this.request("tools/list");
     const names = new Set((listed?.tools || []).map((tool) => tool.name));

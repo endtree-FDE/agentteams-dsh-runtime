@@ -5,9 +5,9 @@ metadata:
 spec:
   model: step-3.5-flash-2603
   runtime: dsh
-  image: juchang/agentteams-dsh-runtime:0.4.0
+  image: juchang/agentteams-dsh-runtime:0.4.1
   env:
-    JUCHANG_DSH_WORKER_IMAGE: juchang/agentteams-dsh-runtime:0.4.0
+    JUCHANG_DSH_WORKER_IMAGE: juchang/agentteams-dsh-runtime:0.4.1
     JUCHANG_MANAGER_STATE_DIR: /root/agentteams-fs/agents/manager/plans
     JUCHANG_SUPERVISOR_STATE_DIR: /root/agentteams-fs/agents/manager/supervisor
     JUCHANG_DSH_HOME: /root/agentteams-fs/agents/manager/dsh-home
