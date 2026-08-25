@@ -4,7 +4,7 @@ manager:
   runtime: dsh
   image:
     repository: juchang/agentteams-dsh-runtime
-    tag: 0.4.1
+    tag: 0.4.2
 
 credentials:
   defaultModel: step-3.5-flash-2603

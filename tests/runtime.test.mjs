@@ -553,6 +553,12 @@ test("Supervisor patch gives Cordis Loader a fixed string plugin path", () => {
   assert.doesNotMatch(patch, /name:\s*!!js/);
 });
 
+test("resumable runner setup does not return the model-selection disposer", () => {
+  const source = fs.readFileSync("dsh-plugins/resumable-headless.mjs", "utf8");
+  assert.match(source, /const setup = \(agentCtx\) => \{\s*installModelSelection/);
+  assert.doesNotMatch(source, /=>\s*installModelSelection\(/);
+});
+
 test("Leader materializes a bounded inline Supervisor input before planning the DAG", async () => {
   const value = leaderFixture();
   const envelope = { ...value.envelope, inputPath: undefined, inputPayload: { instruction: "Read only", evidenceRefs: ["official-source"] } };

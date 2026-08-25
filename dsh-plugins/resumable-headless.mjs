@@ -79,7 +79,9 @@ export async function runResumable(ctx, task, io = internals, env = process.env)
 
   const selection = defaultModel.currentSelection();
   const agentOptions = { provider: selection.provider, model: selection.model };
-  const setup = (agentCtx) => installModelSelection(agentCtx, { current: selection, assembled: undefined });
+  const setup = (agentCtx) => {
+    installModelSelection(agentCtx, { current: selection, assembled: undefined });
+  };
   const sessionId = requiredSessionId(env);
   const resume = env.JUCHANG_DSH_SESSION_MODE === "resume";
   const handle = resume

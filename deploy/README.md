@@ -7,7 +7,7 @@ This slice runs the global AgentTeams Manager, the fixed Team Leader, and all fo
 1. Check out `agentscope-ai/AgentTeams` at tag `v1.2.3` / commit `223ddc2b8073e4c8b93bcbb15e1d717f196c04d9`.
 2. Run `npm run patch:agentteams-worker -- --source <checkout>` from this package.
 3. Build and test the patched AgentTeams Controller in CloudStudio. Go tests are a hard gate.
-4. Build this directory's Dockerfile as `juchang/agentteams-dsh-runtime:0.4.1`.
+4. Build this directory's Dockerfile as `juchang/agentteams-dsh-runtime:0.4.2`.
 5. Deploy AgentTeams with `cloudstudio-values.yaml`, ensuring the patched Controller image is selected.
 6. Apply `manager-dsh.yaml` only when Helm did not create the Manager, then apply `agentteams-v1.2.3-dsh.yaml`.
 7. Read back the Manager, all five Workers, the Team roster, every projected `runtime.yaml`, and all six runtime readiness markers.
@@ -25,7 +25,7 @@ The deploy script refuses to write unless `JUCHANG_CONFIRM_DEPLOY=1` is present.
 When `0.3.1` is already present on the CloudStudio host, the checked-in
 `deploy/Dockerfile.runtime-overlay` reuses its verified DSH, Python and
 TeamHarness layers and replaces only the locked Node dependencies and runtime
-source. The resulting `0.4.1` image has the same entrypoint and authority
+source. The resulting `0.4.2` image has the same entrypoint and authority
 boundary as the full build; use the full Dockerfile for a clean-room release.
 
 An existing all-in-one CloudStudio installation can keep its current network, ports, state volume, and manager filesystem while replacing only the embedded Controller image:
