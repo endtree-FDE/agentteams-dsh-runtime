@@ -1,13 +1,13 @@
 manager:
   enabled: true
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image:
     repository: juchang/agentteams-dsh-runtime
     tag: 0.3.0
 
 credentials:
-  defaultModel: MiniMax-M3
+  defaultModel: step-3.5-flash-2603
 
 worker:
   defaultRuntime: dsh

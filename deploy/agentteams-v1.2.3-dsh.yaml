@@ -3,7 +3,7 @@ kind: Worker
 metadata:
   name: juchang-v14-lead
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:
@@ -19,7 +19,7 @@ kind: Worker
 metadata:
   name: juchang-v14-material-intake
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:
@@ -33,7 +33,7 @@ kind: Worker
 metadata:
   name: juchang-v14-evidence-guard
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:
@@ -47,7 +47,7 @@ kind: Worker
 metadata:
   name: juchang-v14-entity-matcher
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:
@@ -61,7 +61,7 @@ kind: Worker
 metadata:
   name: juchang-v14-approval-guard
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:

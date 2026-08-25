@@ -3,7 +3,7 @@ kind: Manager
 metadata:
   name: default
 spec:
-  model: MiniMax-M3
+  model: step-3.5-flash-2603
   runtime: dsh
   image: juchang/agentteams-dsh-runtime:0.3.0
   env:

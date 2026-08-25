@@ -30,7 +30,7 @@ JUCHANG_CONFIRM_UPGRADE=1 bash deploy/cloudstudio-upgrade-embedded.sh
 
 The previous Controller remains stopped as `agentteams-controller-v122-backup`. The script restores it automatically when the new `/healthz` does not become ready within two minutes.
 
-`MiniMax-M3` is the selected first model. It must exist as an authorized AgentTeams Gateway model route. Replace only the model ID if the deployed Gateway exposes a different configured route; do not change the DSH runtime or authority boundary.
+`step-3.5-flash-2603` is the verified CloudStudio route used by the checked-in manifests. Replace only the model ID when another authorized AgentTeams Gateway route is verified; do not change the DSH runtime or authority boundary.
 
 ## Non-claims
 
