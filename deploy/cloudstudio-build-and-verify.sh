@@ -8,6 +8,7 @@ runtime_image="${JUCHANG_RUNTIME_IMAGE:-juchang/agentteams-dsh-runtime:0.3.0}"
 
 test -f "${agentteams_source}/agentteams-controller/go.mod"
 test -f "${agentteams_source}/helm/agentteams/Chart.yaml"
+test -d "${agentteams_source}/manager/agent"
 node "${runtime_root}/scripts/patch-agentteams-v1.2.3.mjs" --source "${agentteams_source}"
 
 gofmt -w \
@@ -25,7 +26,10 @@ gofmt -w \
   go test ./internal/backend ./internal/controller ./internal/service ./cmd/agt
 )
 
-docker build -f "${agentteams_source}/agentteams-controller/Dockerfile" -t "${controller_image}" "${agentteams_source}"
+controller_context="${agentteams_source}/agentteams-controller"
+mkdir -p "${controller_context}/agent"
+cp -R "${agentteams_source}/manager/agent/." "${controller_context}/agent/"
+docker build -f "${controller_context}/Dockerfile" -t "${controller_image}" "${controller_context}"
 docker build -t "${runtime_image}" "${runtime_root}"
 docker image inspect "${controller_image}" "${runtime_image}" >/dev/null
 
