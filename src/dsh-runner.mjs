@@ -23,6 +23,8 @@ export function validateTaskEnvelope(config, value) {
     if (typeof value[key] !== "string" || !/^[A-Za-z0-9][A-Za-z0-9._-]*$/.test(value[key])) throw new Error(`${key} is unsafe`);
   }
   if (!value.taskId.startsWith(`${value.projectId}-`)) throw new Error("taskId must belong to projectId");
+  if (value.inputPath !== `tasks/${value.taskId}/workspace/input.json`) throw new Error("task inputPath is outside its task workspace");
+  if (value.workspacePath !== `tasks/${value.taskId}/workspace`) throw new Error("task workspacePath is invalid");
   return value;
 }
 

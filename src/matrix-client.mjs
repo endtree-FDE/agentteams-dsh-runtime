@@ -61,7 +61,7 @@ export function listAssignments(config, syncResponse) {
   const rooms = syncResponse?.rooms?.join || {};
   for (const [roomId, room] of Object.entries(rooms)) {
     for (const event of room?.timeline?.events || []) {
-      if (event?.type !== "m.room.message" || event.sender === config.matrixUserId) continue;
+      if (event?.type !== "m.room.message" || event.sender !== config.leaderMatrixUserId) continue;
       const body = event.content?.body;
       const mentions = event.content?.["m.mentions"]?.user_ids || [];
       if (!mentions.includes(config.matrixUserId) && !String(body || "").includes(config.matrixUserId)) continue;
@@ -83,8 +83,15 @@ export function listLeaderEvents(config, syncResponse) {
       if (!mentions.includes(config.matrixUserId) && !body.includes(config.matrixUserId)) continue;
       const project = parseProjectEnvelope(body);
       const completion = parseTaskCompletion(body);
-      if (project) events.push({ kind: "project", roomId, eventId: event.event_id, sender: event.sender, envelope: project });
-      else if (completion) events.push({ kind: "completion", roomId, eventId: event.event_id, sender: event.sender, ...completion });
+      if (project && event.sender === config.projectRequesterMatrixUserId) {
+        events.push({ kind: "project", roomId, eventId: event.event_id, sender: event.sender, envelope: project });
+      } else if (completion) {
+        const index = Number(completion.taskId.match(/-0([1-4])$/)?.[1] || 0) - 1;
+        const role = ["material_intake", "evidence_guard", "entity_matcher", "approval_guard"][index];
+        if (role && event.sender === config.roleBindings?.[role]?.matrixUserId) {
+          events.push({ kind: "completion", roomId, eventId: event.event_id, sender: event.sender, ...completion });
+        }
+      }
     }
   }
   return events;

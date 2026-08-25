@@ -32,6 +32,15 @@ function leaderMatrixUserId(value, member) {
   return `@${runtimeName}:${ownId.slice(separator + 1)}`;
 }
 
+function projectRequesterMatrixUserId(member, env) {
+  const explicit = env.JUCHANG_PROJECT_REQUESTER_MATRIX_USER_ID?.trim();
+  if (explicit) return explicit;
+  const ownId = requiredString(member.matrixUserId, "member.matrixUserId");
+  const separator = ownId.indexOf(":");
+  if (separator < 0) throw new Error("Project requester Matrix identity is unavailable");
+  return `@admin:${ownId.slice(separator + 1)}`;
+}
+
 function roleBindings(value, env) {
   let bindings = value.juchang?.roleBindings || {};
   if (env.JUCHANG_ROLE_BINDINGS_JSON?.trim()) {
@@ -76,6 +85,7 @@ export function loadRuntimeConfig(filename, env = process.env) {
     agentRole,
     matrixUserId: requiredString(member.matrixUserId, "member.matrixUserId"),
     leaderMatrixUserId: leaderMatrixUserId(value, member),
+    projectRequesterMatrixUserId: projectRequesterMatrixUserId(member, env),
     roleBindings: roleBindings(value, env),
     matrixUrl,
     matrixToken: credential(env, credentials.matrixTokenEnv, value.matrix?.accessToken, "Matrix token"),
