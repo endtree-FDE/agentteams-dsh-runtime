@@ -1,0 +1,8 @@
+ARG BASE_IMAGE=higress-registry.cn-hangzhou.cr.aliyuncs.com/agentteams/agentteams-embedded:v1.2.3
+FROM ${BASE_IMAGE}
+
+COPY agentteams-controller /usr/local/bin/agentteams-controller
+COPY agt /usr/local/bin/agt
+COPY crd/ /opt/agentteams/config/crd/
+
+RUN chmod 0755 /usr/local/bin/agentteams-controller /usr/local/bin/agt
