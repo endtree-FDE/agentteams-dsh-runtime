@@ -90,11 +90,15 @@ patch(
   "\t\tif deployMode == v1beta1.DeployModeEdge {\n\t\t\treq.Runtime = runtimeRemoteManagedLocal\n\t\t\tif err := r.Deployer.MergeMemberRuntimeTeamContext(ctx, req); err != nil {",
   "\t\tif deployMode == v1beta1.DeployModeEdge || runtime == backend.RuntimeDSH {\n\t\t\tif deployMode == v1beta1.DeployModeEdge {\n\t\t\t\treq.Runtime = runtimeRemoteManagedLocal\n\t\t\t}\n\t\t\tif err := r.Deployer.MergeMemberRuntimeTeamContext(ctx, req); err != nil {",
 );
-patch(
-  "agentteams-controller/internal/service/worker_env.go",
-  '"AGENTTEAMS_MANAGER_MATRIX_TOKEN": prov.MatrixToken,\n',
-  '"AGENTTEAMS_MANAGER_MATRIX_TOKEN":   prov.MatrixToken,\n\t\t"AGENTTEAMS_MANAGER_ROOM_ID":        prov.RoomID,\n',
-);
+const workerEnvRelative = "agentteams-controller/internal/service/worker_env.go";
+const workerEnv = fs.readFileSync(path.join(root, workerEnvRelative), "utf8");
+if (!workerEnv.includes('"AGENTTEAMS_MANAGER_ROOM_ID"')) {
+  patch(
+    workerEnvRelative,
+    '"AGENTTEAMS_MANAGER_MATRIX_TOKEN": prov.MatrixToken,\n',
+    '"AGENTTEAMS_MANAGER_MATRIX_TOKEN":   prov.MatrixToken,\n\t\t"AGENTTEAMS_MANAGER_ROOM_ID":        prov.RoomID,\n',
+  );
+}
 patch(
   "agentteams-controller/cmd/agt/create.go",
   '"Agent runtime (openclaw|copaw|qwenpaw|hermes|openhuman)"',

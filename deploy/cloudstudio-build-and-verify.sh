@@ -25,7 +25,7 @@ gofmt -w \
   go test ./internal/backend ./internal/controller ./internal/service ./cmd/agt
 )
 
-docker build -f "${agentteams_source}/agentteams-controller/Dockerfile" -t "${controller_image}" "${agentteams_source}/agentteams-controller"
+docker build -f "${agentteams_source}/agentteams-controller/Dockerfile" -t "${controller_image}" "${agentteams_source}"
 docker build -t "${runtime_image}" "${runtime_root}"
 docker image inspect "${controller_image}" "${runtime_image}" >/dev/null
 
