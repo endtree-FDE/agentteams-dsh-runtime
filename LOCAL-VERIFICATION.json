@@ -1,6 +1,6 @@
 {
   "schema": "agentteams-dsh-runtime-local-verification@1",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "verifiedAt": "2026-08-25T14:54:53.5657550+08:00",
   "agentTeams": {
     "version": "v1.2.3",
@@ -14,12 +14,13 @@
     "acpSdk": "0.25.1"
   },
   "checks": {
-    "sourceRuntimeTests": "19/19 passed",
-    "extractedSubmissionTests": "19/19 passed",
+    "sourceRuntimeTests": "20/20 passed",
+    "extractedSubmissionTests": "pending 0.3.1 repack",
     "officialTeamHarnessProbe": "OFFICIAL_TEAMHARNESS_READY",
     "deepAgentsCompileSelfCheck": true,
     "deepAgentsAcpTransportProbe": "DEEPAGENTS_ACP_READY",
-    "patchIdempotent": true
+    "patchIdempotent": true,
+    "minioArtifactPlane": "local command-contract test passed"
   },
   "boundary": "Local verification does not prove Docker build, CloudStudio rollout, live model calls, live Matrix identities, a real four-Worker Project, or editor visual readback."
 }

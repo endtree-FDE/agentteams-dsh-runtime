@@ -42,7 +42,7 @@ const projection = {
   source: {
     environment: "cloudstudio",
     readOnly: true,
-    runtimeVersion: "0.3.0",
+    runtimeVersion: "0.3.1",
     deepAgentsVersion: "optional",
     acpVersion: "optional",
   },

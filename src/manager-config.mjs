@@ -34,6 +34,6 @@ export function loadManagerConfig(env = process.env) {
     model: env.AGENTTEAMS_DEFAULT_MODEL?.trim() || "MiniMax-M3",
     workspaceRoot,
     planRoot: path.resolve(env.JUCHANG_MANAGER_STATE_DIR?.trim() || path.join(workspaceRoot, ".agentteams-dsh-manager")),
-    defaultWorkerImage: env.JUCHANG_DSH_WORKER_IMAGE?.trim() || "juchang/agentteams-dsh-runtime:0.3.0",
+    defaultWorkerImage: env.JUCHANG_DSH_WORKER_IMAGE?.trim() || "juchang/agentteams-dsh-runtime:0.3.1",
   });
 }

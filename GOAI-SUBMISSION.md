@@ -29,7 +29,7 @@ npm run probe:teamharness -- --server /path/to/AgentTeams/plugins/teamharness/mc
 npm run patch:agentteams -- --source /path/to/AgentTeams-v1.2.3
 cd /path/to/AgentTeams-v1.2.3/agentteams-controller
 go test ./internal/backend ./internal/controller ./internal/service ./cmd/agt
-docker build -t juchang/agentteams-dsh-runtime:0.3.0 /path/to/agentteams-dsh-runtime
+docker build -t juchang/agentteams-dsh-runtime:0.3.1 /path/to/agentteams-dsh-runtime
 ```
 
 Deploy the patched Controller, then use `deploy/cloudstudio-values.yaml`, `deploy/manager-dsh.yaml` when needed, and `deploy/agentteams-v1.2.3-dsh.yaml`.
