@@ -32,4 +32,4 @@
 
 - insert:
     - id: juchang-resumable-headless
-      name: !!js process.env.JUCHANG_DSH_RESUMABLE_PLUGIN
+      name: /opt/agentteams-dsh-runtime/dsh-plugins/resumable-headless.mjs

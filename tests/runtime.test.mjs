@@ -547,6 +547,12 @@ test("Supervisor result cannot invent an approval target or unsupported action",
   assert.throws(() => validateSupervisorResult({ schema: "juchang-case-supervisor-turn@1", action: "approval_required", message: "archive", approval: { action: "archive" } }, command), /target is missing/);
 });
 
+test("Supervisor patch gives Cordis Loader a fixed string plugin path", () => {
+  const patch = fs.readFileSync("profiles/supervisor.patch.yml", "utf8");
+  assert.match(patch, /name: \/opt\/agentteams-dsh-runtime\/dsh-plugins\/resumable-headless\.mjs/);
+  assert.doesNotMatch(patch, /name:\s*!!js/);
+});
+
 test("Leader materializes a bounded inline Supervisor input before planning the DAG", async () => {
   const value = leaderFixture();
   const envelope = { ...value.envelope, inputPath: undefined, inputPayload: { instruction: "Read only", evidenceRefs: ["official-source"] } };
