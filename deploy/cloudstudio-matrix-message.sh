@@ -7,7 +7,8 @@ message="$2"
 matrix_url="${AGENTTEAMS_MATRIX_URL:?AGENTTEAMS_MATRIX_URL is required}"
 admin_user="${AGENTTEAMS_ADMIN_USER:?AGENTTEAMS_ADMIN_USER is required}"
 admin_password="${AGENTTEAMS_ADMIN_PASSWORD:?AGENTTEAMS_ADMIN_PASSWORD is required}"
-manager_user="${AGENTTEAMS_MANAGER_MATRIX_USER_ID:-@manager:${AGENTTEAMS_MATRIX_DOMAIN:?AGENTTEAMS_MATRIX_DOMAIN is required}}"
+expected_sender="${JUCHANG_EXPECT_SENDER:-${AGENTTEAMS_MANAGER_MATRIX_USER_ID:-@manager:${AGENTTEAMS_MATRIX_DOMAIN:?AGENTTEAMS_MATRIX_DOMAIN is required}}}"
+expected_prefix="${JUCHANG_EXPECT_PREFIX:-MANAGER_}"
 token=""
 
 cleanup() {
@@ -28,7 +29,7 @@ curl -fsS -X PUT -H "Authorization: Bearer ${token}" -H 'Content-Type: applicati
 for _ in $(seq 1 18); do
   response="$(curl -fsS -G -H "Authorization: Bearer ${token}" --data-urlencode "since=${since}" --data-urlencode 'timeout=5000' "${matrix_url}/_matrix/client/v3/sync")"
   since="$(jq -er '.next_batch' <<<"${response}")"
-  body="$(jq -r --arg room "${room}" --arg sender "${manager_user}" '.rooms.join[$room].timeline.events[]? | select(.type=="m.room.message" and .sender==$sender) | .content.body // empty' <<<"${response}" | grep '^MANAGER_' | tail -n 1 || true)"
+  body="$(jq -r --arg room "${room}" --arg sender "${expected_sender}" '.rooms.join[$room].timeline.events[]? | select(.type=="m.room.message" and .sender==$sender) | .content.body // empty' <<<"${response}" | grep -F "${expected_prefix}" | tail -n 1 || true)"
   if [[ -n "${body}" ]]; then
     printf '%s\n' "${body}"
     exit 0
